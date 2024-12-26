@@ -1,5 +1,8 @@
 # welcometo1984.com
 
+Thank you to everyone at RaspberryPi.org and OpenWRT.org. Amazing fun
+projects that help people learn valuable skills!
+
 The UCI defaults file can be used when using the OpenWRT firmware builder. 
 Otherwise you can just manually modify your files to match the content in these. 
 Basically, SSH into the router and modify the /etc/config/<service name> file
