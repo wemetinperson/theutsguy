@@ -1,0 +1,302 @@
+#!/bin/sh
+#                                                                                                                                                                                                   
+# +-+-+-+-+-+-+-+-+-+-+-+-+
+# welcometo1984.com (Version A)
+# +-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ONLY FOR Raspberry Pi 4B   
+# 
+# - HOW TO CONNECT
+#  -+ Built-in Ethernet port is LAN, this is what you will plug the computer into. 
+#  -+ USB-Ethernet adapter is for WAN access so conncet your internet feed into that.
+#  -+ Technically you can reverse it with a few mods and this will work with up to 4 USB-Ethernet adapters as LAN, but for the sake of this use case I made the built-in Ethernet LAN for reliability.
+#   
+# - DEFAULT SETTINGS
+#
+#  -+ The VPN kill switch is enabled by default so you will have 
+#     no internet access until you manually configure and start the VPN
+#     or disable the kill switch.
+#
+#  -+ Only OpenVPN is supported at this time. If you need Wireguard, contact me. 
+#
+#  -+ If you would like to use the router without any VPN, you must disable 
+#     the VPN by going into LUCI then the VPN Tab->OpenVPN then clicking the "Stop" button. If it's
+#     already stopped you will see a "Start" button instead. Do not click anything
+#     if that's the case. Once the VPN is stopped, go to the System Tab->Custom Commands and click the 
+#     "Disable Kill Switch" button.
+#
+#  -+ All wireless capability is disabled by default. You may manually enable.
+#
+#  -+ IPv6 is disabled by default to reduce the attack surface and attribution. 
+#
+#  -+ SSH is disabled, but you can re-enable it via the GUI.
+#
+# /\_/\
+#((@v@))
+#():::()
+# VV-VV
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR # OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+#
+
+
+#//Configure DHCP to remove IPv6 DHCP for the LAN to reduce attack surface
+
+cat << "EOF" > /etc/config/dhcp
+
+config dnsmasq
+        option domainneeded '1'
+        option boguspriv '1'
+        option filterwin2k '0'
+        option localise_queries '1'
+        option rebind_protection '1'
+        option rebind_localhost '1'
+        option local '/lan/'
+        option domain 'lan'
+        option expandhosts '1'
+        option nonegcache '0'
+        option cachesize '1000'
+        option authoritative '1'
+        option readethers '1'
+        option leasefile '/tmp/dhcp.leases'
+        option resolvfile '/tmp/resolv.conf.d/resolv.conf.auto'
+        option nonwildcard '1'
+        option localservice '1'
+        option ednspacket_max '1232'
+        option filter_aaaa '0'
+        option filter_a '0'
+
+config dhcp 'lan'
+        option interface 'lan'
+        option start '100'
+        option limit '150'
+        option leasetime '12h'
+        option dhcpv4 'server'
+
+config dhcp 'wan'
+        option interface 'wan'
+        option ignore '1'
+
+config odhcpd 'odhcpd'
+        option maindhcp '0'
+        option leasefile '/tmp/hosts/odhcpd'
+        option leasetrigger '/usr/sbin/odhcpd-update'
+        option loglevel '4'
+
+EOF
+
+#// Configure SSH server (disabled by default and port changed to be funny...and avoid fast nmap scans)
+#// sure, could i change the banner file and modify the service's behavior to further disguise the service? 
+#// ya, but i dont have a need. if you have that need lets talk and ill tell you how you can do it.
+
+cat << "EOF" > /etc/config/dropbear
+
+config dropbear
+	option PasswordAuth 'off'
+	option RootPasswordAuth 'off'
+	option Port         '42069'
+	option Interface 'lan'
+#	option BannerFile   '/etc/banner'"
+EOF
+
+
+
+# //Configure firewall and kill switch
+
+cat << "EOF" > /etc/config/firewall
+
+config defaults
+	option syn_flood '1'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+
+config zone
+	option name 'lan'
+	list network 'lan'
+	option input 'ACCEPT'
+	option output 'ACCEPT'
+	option forward 'ACCEPT'
+
+config zone
+	option name 'wan'
+	list network 'wan'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+	option masq '1'
+	option mtu_fix '1'
+
+config zone
+	option name 'OpenVPN'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+	option masq '1'
+	option mtu_fix '1'
+	option device 'tun0'
+
+config forwarding
+	option src 'lan'
+	option dest 'OpenVPN'
+
+config rule
+	option name 'Allow-DHCP-Renew'
+	option src 'wan'
+	option proto 'udp'
+	option dest_port '68'
+	option target 'ACCEPT'
+	option family 'ipv4'
+
+config rule
+	option name 'Allow-Ping'
+	option src 'wan'
+	option proto 'icmp'
+	option icmp_type 'echo-request'
+	option family 'ipv4'
+	option target 'ACCEPT'
+	
+EOF
+
+#//Load custom buttons/commands
+
+cat << "EOF" >> /etc/config/luci
+
+config command
+	option name 'Enable VPN Kill Switch'
+	option command '/root/enableKillSwitch.sh'
+
+config command
+	option name 'Disable VPN Kill Switch'
+	option command '/root/disableKillSwitch.sh'
+	
+config command
+	option name 'Clear DHCP Leases'
+	option command '/root/clearDhcp.sh'
+	
+config command
+	option name 'Update Software Packages'
+	option command '/root/updatePackages.sh'
+EOF
+
+#//Configure network interfaces
+
+cat << "EOF" > /etc/config/network
+
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
+
+config device
+	option name 'br-lan'
+	option type 'bridge'
+	list ports 'eth0'
+
+config interface 'lan'
+	option device 'br-lan'
+	option proto 'static'
+	option ipaddr '192.168.4.1'
+	option netmask '255.255.255.0'
+
+config interface 'wan'
+	option device 'eth1'
+	option proto 'dhcp'
+	option peerdns '0'
+	list dns '1.1.1.1'
+	list dns '8.8.8.8'
+
+
+EOF
+
+# //Configure LUCI to redirect to HTTPS.
+
+cat << "EOF" > /etc/config/uhttpd
+
+config uhttpd 'main'
+	list listen_http '0.0.0.0:80'
+	list listen_http '[::]:80'
+	list listen_https '0.0.0.0:443'
+	list listen_https '[::]:443'
+	option redirect_https '1'
+	option home '/www'
+	option rfc1918_filter '1'
+	option max_requests '3'
+	option max_connections '100'
+	option cert '/etc/uhttpd.crt'
+	option key '/etc/uhttpd.key'
+	option cgi_prefix '/cgi-bin'
+	list lua_prefix '/cgi-bin/luci=/usr/lib/lua/luci/sgi/uhttpd.lua'
+	option script_timeout '60'
+	option network_timeout '30'
+	option http_keepalive '20'
+	option tcp_keepalive '1'
+	option ubus_prefix '/ubus'
+
+config cert 'defaults'
+	option days '730'
+	option key_type 'ec'
+	option bits '2048'
+	option ec_curve 'P-256'
+	option country 'ZZ'
+	option state 'Somewhere'
+	option location 'Unknown'
+	option commonname 'OpenWrt'
+
+EOF
+
+
+#//Wireless Configuration
+uci set wireless.radio0.disabled='1'
+uci set wireless.radio0.channel='auto'
+uci set wireless.default_radio0.disabled='1'
+uci set wireless.default_radio0.isolate='1'
+uci commit wireless
+wifi reload
+
+# You can pre-populate this with configs and stuff if you want.
+# for now this is just a stub/placeholder.
+
+cat << "EOF" >> /etc/config/openvpn
+
+# You can pre-populate this with configs and stuff if you want.
+# for now this is just a stub/placeholder.
+
+EOF
+
+
+#// Allow for VPN to restart on hotplug of USB-Ethernet adapter
+#// this is so the VPN automatically reloads in 10 seconds in case the adapter gets unplugged.
+
+
+
+cat << "EOF" > /etc/hotplug.d/iface/99-hotPlugVpn
+#!/bin/sh
+
+if [ "${ACTION}" == "ifup" ] && [ "${INTERFACE}" = "wan" ]
+then
+   
+    sleep 10s
+    service openvpn stop
+    sleep 5s
+    service openvpn start
+    
+fi
+
+if [ "${ACTION}" == "ifdown" ] && [ "${INTERFACE}" = "wan" ]
+then
+    
+    service openvpn stop
+fi
+
+EOF
+
+exit 0
+
