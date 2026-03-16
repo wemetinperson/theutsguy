@@ -1,13 +1,9 @@
 #!/bin/sh
 
+#Updated to take into account the chance in OpenWRT 25 to use apk instead of opkg. There are commands for both now.
   
 # www.theutsguy.com
 # www.youtube.com/@theutsguy
-
-
-# This is meant to help you setup an OpenWRT router with multiple wireguard
-# configs and have it randomly pick one every time you reboot and at
-# predefined intervals using crontab
 
 # ZERO AI WAS USED IN THE MAKING OF THIS. 100% GENUINE HUMAN SLOPPY CODE!
 # YES, THIS IS INEFFICIENT AND SLOPPY CODE. I GUARANTEE YOU CAN DO THIS
@@ -17,6 +13,10 @@
 # CAN ALL THIS BE AUTOMATED? CAN I JUST BUILD THIS INTO CUSTOM FIRMWARE? SURE!
 # BUT I HAVE A JOB SO I DON'T HAVE TIME.
 
+
+# ****************************************************************************************************************
+# This is intended for OpenWRT version 24 or lower. If you're using 25+ then this MAY not work.
+# ****************************************************************************************************************
 
 
 # INSTRUCTIONS:
@@ -56,6 +56,7 @@
 #
 # IMPORTANT: Your configs MUST be in a directory called wg_configs AND they must be in standard
 #            wireguard format. No extraneous comments, or fancy stuff from the provider.
+#	     You also need to make sure you have permission to access the local directory in which they are stored.	
 #
 # 	COMMAND: scp -Or /path/to/wg_configs root@192.168.1.1:/root
 
@@ -75,8 +76,15 @@
 #-----NEXT STEP------>
 
 # Install the necessary packages
+#
+#	OpenWRT 24 or older:
 # 	COMMAND: opkg update && opkg install coreutils-shuf wireguard-tools luci-proto-wireguard luci-app-wireguard nano luci-app-commands
-
+#
+#
+#	OpenWRT 25 or newer using apk instead of opkg
+#	COMMAND: apk update && apk add coreutils-shuf wireguard-tools luci-proto-wireguard nano luci-app-commands
+#
+#
 #-----NEXT STEP------>
 
 # Reboot the router
