@@ -38,6 +38,7 @@
 # BUT I HAVE A JOB SO I DON'T HAVE TIME.
 
 
+# Once you're done with everything I recommend adding a password to your router and consider using my auto-update script that's located in this same repo.
 
 # INSTRUCTIONS:
 # NOTE: DO NOT configure wireguard through LUCI as it will cause conflicts with WIREHARD
