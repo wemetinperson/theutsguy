@@ -114,4 +114,19 @@ while read -r iface; do
         sed -i "1c\source=$iface" /etc/kismet/kismet.conf
         ip link set $iface up
         found=1
-       
+        break
+    fi
+done < <(iw dev | awk '$1=="Interface"{print $2}')
+
+if [ "$found" -eq 0 ]; then
+    sed -i "1c\#No USB Wi-Fi Adapter Found" /etc/kismet/kismet.conf
+fi
+
+
+exit 0
+
+# Make the script executable
+sudo chmod +x /home/theutsguy/wifi_bluetooth_helper.sh
+
+#Plug in your adapters and reboot
+sudo reboot
