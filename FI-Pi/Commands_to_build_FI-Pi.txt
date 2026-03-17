@@ -1,0 +1,117 @@
+# For full transparency of what I did in the images here you go:
+
+# This is run on Ubuntu 24.04.4 burned originally using the Raspberry Pi imager
+# Username: theutsguy
+# Password: 12345
+# ssh is closed and uninstalled 
+# You need to plug in monitor and keyboard tao access command line
+
+# Get Kismet Package Ready
+wget -O - https://www.kismetwireless.net/repos/kismet-release.gpg.key --quiet | gpg --dearmor | sudo tee /usr/share/keyrings/kismet-archive-keyring.gpg >/dev/null
+echo 'deb [signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www.kismetwireless.net/repos/apt/release/noble noble main' | sudo tee /etc/apt/sources.list.d/kismet.list >/dev/null
+
+# Update and Upgrade Existing Packages
+sudo apt update && sudo apt upgrade -y
+
+# Install Necessary Packages
+sudo apt install rtl-433 rtl-sdr net-tools iw build-essential linux-headers-6.8.0-1047-raspi bluez -y 
+
+# Install Kismet Separately (requires user interaction)
+sudo apt install kismet -y
+# manually agree to use SUID
+
+# User must be added to group so you can run with SUID
+sudo usermod -aG kismet theutsguy
+groups 
+
+# Create directory for Kismet logs
+mkdir ~/uts_kismet_logs
+
+# Manually modify kismet.conf to use desired data sources (Wi-Fi name will be modified by sudo crontab)
+sudo nano /etc/kismet/kismet.conf
+source=wlan0
+source=hci0
+source=ticc2531-0
+source=rtl433-0:channel=315.00MHz
+source=rtl433-1:channel=433.92MHz
+
+# Manually modify kismet_logging.conf (we're using PCAPNG instead of KismetDB)
+sudo nano /etc/kismet/kismet_logging.conf
+
+log_title=UTS_Kismet
+log_prefix=/home/theutsguy/uts_kismet_logs
+log_types=pcapng
+pcapng_log_max_mb=1024
+
+#Install driver for recommended Wi-Fi USB adapter 
+git clone https://github.com/aircrack-ng/rtl8812au.git
+cd rtl8812au
+make
+sudo make install
+
+
+# Disk space cleanup script
+
+sudo nano /home/theutsguy/disk_space_check.sh
+                                                          
+#!/bin/bash
+# www.theutsguy.com
+# fipi@theutsguy.com
+# This is a random thing I made, don't use it for anything.
+# Don't listen to anything I say or do anything I do.
+
+percent=$(df -h | sort -k3 -hr | head -n1 | awk '{gsub("%","",$5); print $5}')
+
+if (( percent >= 90 )); then
+    
+        oldest=$(find /home/theutsguy/uts_kismet_logs -type f -printf '%T@ %p\n' | sort -n | head -n1 | cut -d' ' -f2-)
+        if [[ -n "$oldest" ]]; then
+                rm -f -- "$oldest"
+        fi
+    exit 0
+else
+    exit 0
+fi
+
+# Make it executable
+sudo chmod +x /home/theutsguy/disk_space_check.sh
+
+
+
+# Modify the sudo and normal crontabs
+
+sudo crontab -e
+@reboot /home/theutsguy/wifi_bluetooth_helper.sh
+
+crontab -e
+@reboot sleep 30s && kismet
+
+# Runs at 11 minutes on every hour
+11 * * * * /home/theutsguy/disk_space_check.sh
+
+
+
+
+#create this file and then modify to the sudo crontab.
+
+sudo nano /home/theutsguy/wifi_bluetooth_helper.sh
+
+#!/bin/bash
+# www.theutsguy.com
+# fipi@theutsguy.com
+# This is a random thing I made, don't use it for anything.
+# Don't listen to anything I say or do anything I do.
+# This is automatically run by the sudo crontab at reboot.
+# This script gets the name of your USB Wi-Fi adapter and tells Kismet to use it as a data source.
+# You cannot reliably use the onboard Wi-Fi on the Raspberry Pi so you need a USB Wi-Fi Adapter.
+# You cannot just assign an index to the Wi-Fi adapter like you can the Zigbee or RTL-SDR dongles so you need this script. 
+# You must ensure all adapters are plugged in BEFORE you power on the Raspberry Pi.
+
+found=0
+
+while read -r iface; do
+    if readlink -f "/sys/class/net/$iface/device" | grep -q usb; then
+        sed -i "1c\source=$iface" /etc/kismet/kismet.conf
+        ip link set $iface up
+        found=1
+       
