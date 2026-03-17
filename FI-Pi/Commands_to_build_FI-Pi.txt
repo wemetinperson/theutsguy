@@ -129,4 +129,7 @@ exit 0
 sudo chmod +x /home/theutsguy/wifi_bluetooth_helper.sh
 
 #Plug in your adapters and reboot
+sudo apt remove openssh-server
 sudo reboot
+
+
