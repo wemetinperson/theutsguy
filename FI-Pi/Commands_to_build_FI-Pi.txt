@@ -11,7 +11,8 @@ wget -O - https://www.kismetwireless.net/repos/kismet-release.gpg.key --quiet | 
 echo 'deb [signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www.kismetwireless.net/repos/apt/release/noble noble main' | sudo tee /etc/apt/sources.list.d/kismet.list >/dev/null
 
 # Update and Upgrade Existing Packages
-sudo apt update && sudo apt upgrade -y
+#optional, might break stuff, up to you to play with it 
+#sudo apt update && sudo apt upgrade -y
 
 # Install Necessary Packages
 sudo apt install rtl-433 rtl-sdr net-tools iw build-essential linux-headers-6.8.0-1047-raspi bluez -y 
