@@ -3,16 +3,18 @@
 # This is run on Ubuntu 24.04.4 burned originally using the Raspberry Pi imager
 # Username: theutsguy
 # Password: 12345
-# ssh is closed and uninstalled 
-# You need to plug in monitor and keyboard tao access command line
+# ssh is not enabled, but if you want you can enable it for ease of access. ENABLING SSH MAKES IT LESS SECURE!! 
+# You need to plug in monitor and keyboard to access command line in order to pull the logs if you don't have SSH enabled. This is more secure even if it's cumbersome.
+
+
+# Update and Upgrade Existing Packages
+# OPTIONAL, might break stuff, up to you to play with it 
+# sudo apt update && sudo apt upgrade -y
+
 
 # Get Kismet Package Ready
 wget -O - https://www.kismetwireless.net/repos/kismet-release.gpg.key --quiet | gpg --dearmor | sudo tee /usr/share/keyrings/kismet-archive-keyring.gpg >/dev/null
 echo 'deb [signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www.kismetwireless.net/repos/apt/release/noble noble main' | sudo tee /etc/apt/sources.list.d/kismet.list >/dev/null
-
-# Update and Upgrade Existing Packages
-#optional, might break stuff, up to you to play with it 
-#sudo apt update && sudo apt upgrade -y
 
 # Install Necessary Packages
 sudo apt install rtl-433 rtl-sdr net-tools iw build-essential linux-headers-6.8.0-1047-raspi bluez -y 
