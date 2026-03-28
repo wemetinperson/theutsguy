@@ -16,7 +16,11 @@
   https://youtu.be/jDERBtcW8T4
 
 
-# The instructional FI-Pivideo is: https://youtu.be/k2mtcIc_QAg
+# The installation instructions are here: 
+  https://youtu.be/k2mtcIc_QAg
+
+# If you want the long video where I go through every command I use from scratch go here:
+  https://youtu.be/flcMbX7mNks
 
 # This is run on Ubuntu 24.04.4 burned originally using the Raspberry Pi imager
 # Username: theutsguy
