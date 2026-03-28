@@ -1,6 +1,7 @@
 # For full transparency of what I did in the images here you go:
 
 # This is run on Ubuntu 24.04.4 burned originally using the Raspberry Pi imager
+# Hostname: utskismetsensor
 # Username: theutsguy
 # Password: 12345
 # ssh is not enabled, but if you want you can enable it for ease of access. ENABLING SSH MAKES IT LESS SECURE!! 
