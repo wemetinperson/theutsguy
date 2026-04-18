@@ -21,6 +21,7 @@ echo 'deb [signed-by=/usr/share/keyrings/kismet-archive-keyring.gpg] https://www
 sudo apt install rtl-433 rtl-sdr net-tools iw build-essential linux-headers-6.8.0-1047-raspi bluez -y 
 
 # Install Kismet Separately (requires user interaction)
+sudo apt update
 sudo apt install kismet -y
 # manually agree to use SUID
 
